@@ -1,0 +1,96 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+import sys
+
+import dbus
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
+
+PK_EXIT_ENUM_SUCCESS = 1
+PK_INFO_ENUM_BLOCKED = 9
+PK_TRANSACTION_FLAG_ENUM_ONLY_DOWNLOAD = 3
+
+def output(s):
+    print(s)
+    sys.stdout.flush()
+
+class PackageKitUpdate:
+    def __init__(self):
+        self.bus = dbus.SystemBus(mainloop=DBusGMainLoop())
+        self.loop = GLib.MainLoop()
+
+        proxy = self.bus.get_object('org.freedesktop.PackageKit',
+                                    '/org/freedesktop/PackageKit')
+        self.online = dbus.Interface(proxy, 'org.freedesktop.PackageKit')
+        self.offline = dbus.Interface(proxy, 'org.freedesktop.PackageKit.Offline')
+
+    def check_updates(self):
+        output("STATUS: CACHE")
+
+        trans = self._create_transaction()
+        trans.RefreshCache(False)
+        self.loop.run()
+
+        output("STATUS: UPDATES")
+
+        self.packages = []
+        trans = self._create_transaction()
+        trans.connect_to_signal('Package', self._on_package)
+        trans.GetUpdates(0)
+        self.loop.run()
+
+        if len(self.packages) == 0:
+            output("STATUS: UPTODATE")
+            return
+
+        output("STATUS: DOWNLOADING")
+
+        trans = self._create_transaction()
+        trans.connect_to_signal('Package', self._on_download)
+        trans.UpdatePackages(1 << PK_TRANSACTION_FLAG_ENUM_ONLY_DOWNLOAD,
+                             self.packages)
+        self.loop.run()
+
+        output("STATUS: PREPARING")
+
+        self.offline.Trigger('reboot')
+
+        output("STATUS: READY")
+
+    def _create_transaction(self):
+        tid = self.online.CreateTransaction()
+        proxy = self.bus.get_object('org.freedesktop.PackageKit', tid)
+        trans = dbus.Interface(proxy, 'org.freedesktop.PackageKit.Transaction')
+
+        trans.SetHints(["background=true", "interactive=false"])
+
+        trans.connect_to_signal('Error', self._on_error)
+        trans.connect_to_signal('Finished', self._on_finished)
+
+        return trans
+
+    def _on_error(self, result):
+        raise Exception("DBus error encountered")
+
+    def _on_finished(self, code, elapsed):
+        if code != PK_EXIT_ENUM_SUCCESS:
+            raise Exception("Problem updating packages: %d" % code)
+        self.loop.quit()
+
+    def _on_package(self, info, id, summary):
+        if info == PK_INFO_ENUM_BLOCKED:
+            output("BLOCKED: %s" % id)
+            return
+        output("UPDATE: %s" % id)
+        self.packages.append(id)
+
+    def _on_download(self, info, id, summary):
+        output("DOWNLOAD: %s" % id)
+
+try:
+    PackageKitUpdate().check_updates()
+    sys.exit(0)
+except Exception as e:
+    output("ERROR: %s" % e)
+    sys.exit(1)
