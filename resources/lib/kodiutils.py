@@ -5,10 +5,6 @@ import xbmcaddon
 import xbmcgui
 import sys
 import logging
-if sys.version_info >= (2, 7):
-    import json as json
-else:
-    import simplejson as json
 
 
 # read settings
@@ -53,22 +49,3 @@ def get_setting_as_int(setting):
 
 def get_string(string_id):
     return ADDON.getLocalizedString(string_id).encode('utf-8', 'ignore')
-
-
-def kodi_json_request(params):
-    data = json.dumps(params)
-    request = xbmc.executeJSONRPC(data)
-
-    try:
-        response = json.loads(request)
-    except UnicodeDecodeError:
-        response = json.loads(request.decode('utf-8', 'ignore'))
-
-    try:
-        if 'result' in response:
-            return response['result']
-        return None
-    except KeyError:
-        logger.warn("[%s] %s" %
-                    (params['method'], response['error']['message']))
-        return None

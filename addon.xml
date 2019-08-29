@@ -2,20 +2,18 @@
 <addon id="service.system.update" name="System Update" version="0.0.1" provider-name="Pierre Ossman">
     <requires>
         <import addon="xbmc.python" version="2.24.0"/>
-
-        <import addon="script.module.simplejson" version="3.3.0"/>
     </requires>
     <extension point="xbmc.service" library="main.py" start="startup"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Update the underlying Linux system packages</summary>
-        <description lang="en_GB"></description>
+        <description lang="en_GB">Automatically checks for new updates to system packages and downloads them. Once an update is ready it is queued for the next reboot and you'll get the option of rebooting right away.</description>
         <language></language>
         <platform>linux</platform>
         <license>GPL-3.0</license>
         <forum></forum>
         <website></website>
         <email>pierre@ossman.eu</email>
-        <source></source>
+        <source>https://github.com/ossman/service.system.update</source>
         <news></news>
         <disclaimer></disclaimer>
         <assets>
