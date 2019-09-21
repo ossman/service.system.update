@@ -29,7 +29,7 @@ class PackageKitUpdate:
         output("STATUS: CACHE")
 
         trans = self._create_transaction()
-        trans.RefreshCache(False)
+        trans.RefreshCache(True)
         self.loop.run()
 
         output("STATUS: UPDATES")
