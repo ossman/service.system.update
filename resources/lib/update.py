@@ -15,7 +15,8 @@ def check_updates():
     helper = os.path.join(origin, "..", "bin", "update")
 
     p = subprocess.Popen(helper, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT)
+                         stderr=subprocess.STDOUT,
+                         text=True)
 
     ready = False
     for line in p.stdout:
